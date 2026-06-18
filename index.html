@@ -34,21 +34,30 @@
     html {
       scroll-behavior: smooth;
       width: 100%;
-      overflow-x: hidden;
+      max-width: 100%;
+      overflow-x: clip;
       overscroll-behavior-x: none;
     }
 
     body {
       width: 100%;
+      max-width: 100%;
       min-width: 0;
-      overflow-x: hidden;
+      overflow-x: clip;
       overscroll-behavior-x: none;
-      touch-action: manipulation;
+      touch-action: pan-y;
       -webkit-text-size-adjust: 100%;
       font-family: Inter, Arial, Helvetica, sans-serif;
       color: var(--preto);
       background: var(--cinza-claro);
       line-height: 1.5;
+    }
+
+    @supports not (overflow: clip) {
+      html,
+      body {
+        overflow-x: hidden;
+      }
     }
 
     body.cart-open {
@@ -71,9 +80,21 @@
       cursor: pointer;
     }
 
+    a,
+    button,
+    .add-cart,
+    .cart-btn,
+    .icon-btn,
+    .filter-btn,
+    .carousel-dot {
+      touch-action: manipulation;
+    }
+
     img {
       max-width: 100%;
       display: block;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .svg-sprite {
@@ -444,6 +465,7 @@
     }
 
     .main {
+      max-width: 100%;
       overflow: hidden;
     }
 
@@ -973,6 +995,7 @@
       transition: var(--transition);
       box-shadow: 0 10px 22px rgba(18, 16, 24, 0.08);
       flex-shrink: 0;
+      touch-action: manipulation;
     }
 
     .carousel-btn svg {
@@ -1004,9 +1027,13 @@
 
     .carousel-wrapper {
       position: relative;
+      width: 100%;
+      max-width: 100%;
       overflow: hidden;
       padding: 8px 20px 10px;
       overscroll-behavior-x: contain;
+      contain: layout paint;
+      touch-action: pan-y;
     }
 
     .carousel-track {
@@ -1019,6 +1046,7 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       transform: translate3d(0, 0, 0);
+      max-width: 100%;
     }
 
     .carousel-slide {
@@ -1093,18 +1121,14 @@
       }
 
       .carousel-navigation {
-        gap: 8px;
+        gap: 0;
         padding: 0;
         margin-top: 8px;
+        min-height: 16px;
       }
 
       .carousel-controls {
-        gap: 8px;
-      }
-
-      .carousel-btn {
-        width: 36px;
-        height: 36px;
+        display: none;
       }
 
       .carousel-title {
@@ -1118,6 +1142,12 @@
 
       .carousel-dot.active {
         width: 20px;
+      }
+
+      input,
+      select,
+      textarea {
+        font-size: 16px;
       }
 
       .product-card {
