@@ -1,4 +1,4 @@
-const FINANCEIRO_WEB_APP_URL = ""; // Cole aqui a URL do Web App do Apps Script para conectar com Google Sheets.
+const FINANCEIRO_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbynkBGSigiKQe1nNVPMXvECpWgUlzYHz5q8vr3GfwvklD3ulQigwft6XaxgmewM34Eplg/exec"; // Cole aqui a URL do Web App do Apps Script para conectar com Google Sheets.
 const FINANCEIRO_API_KEY = "LARA-MINIMARIA-2026";
 const ADMIN_PIN = "1234";
 
