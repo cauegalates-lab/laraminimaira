@@ -35,7 +35,7 @@
       scroll-behavior: smooth;
       width: 100%;
       max-width: 100%;
-      overflow-x: clip;
+      overflow-x: hidden;
       overscroll-behavior-x: none;
     }
 
@@ -43,9 +43,9 @@
       width: 100%;
       max-width: 100%;
       min-width: 0;
-      overflow-x: clip;
+      overflow-x: hidden;
       overscroll-behavior-x: none;
-      touch-action: pan-y;
+      touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
       font-family: Inter, Arial, Helvetica, sans-serif;
       color: var(--preto);
@@ -1029,24 +1029,35 @@
       position: relative;
       width: 100%;
       max-width: 100%;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
       padding: 8px 20px 10px;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
       overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
       contain: layout paint;
-      touch-action: pan-y;
+      touch-action: pan-x pan-y;
+    }
+
+    .carousel-wrapper::-webkit-scrollbar {
+      display: none;
     }
 
     .carousel-track {
       display: flex;
       align-items: stretch;
       gap: 18px;
-      transition: transform 400ms cubic-bezier(0.4, 0, 0.2, 1);
+      transition: none;
       scroll-behavior: smooth;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      transform: translate3d(0, 0, 0);
-      max-width: 100%;
+      transform: none !important;
+      max-width: none;
+      min-width: 100%;
+      touch-action: pan-x pan-y;
     }
 
     .carousel-slide {
@@ -1054,6 +1065,8 @@
       min-width: 0;
       display: flex;
       align-self: stretch;
+      scroll-snap-align: start;
+      scroll-snap-stop: normal;
     }
 
     .carousel-slide .product-card {
@@ -1100,15 +1113,16 @@
     @media (max-width: 768px) {
       .carousel-wrapper {
         padding: 4px 0 8px;
-        overflow: hidden;
-        touch-action: pan-y;
+        overflow-x: auto;
+        overflow-y: hidden;
+        touch-action: pan-x pan-y;
         overscroll-behavior-x: contain;
       }
 
       .carousel-track {
         gap: 8px;
-        will-change: transform;
-        touch-action: pan-y;
+        will-change: auto;
+        touch-action: pan-x pan-y;
       }
 
       .carousel-slide {
@@ -4295,23 +4309,22 @@
       updateProductCartBadges();
     }
 
-    function updateCarouselPosition(carouselId) {
+    function getCarouselScroller(track) {
+      return track ? track.closest(".carousel-wrapper") : null;
+    }
+
+    function getCarouselStep(track) {
+      const slide = track?.querySelector(".carousel-slide");
+      if (!slide) return 0;
+
+      const styles = getComputedStyle(track);
+      const gap = Number.parseFloat(styles.columnGap || styles.gap) || 0;
+      return slide.getBoundingClientRect().width + gap;
+    }
+
+    function updateCarouselDots(carouselId) {
       const carousel = state.carousels[carouselId];
-      const track = document.getElementById(carouselId);
-      if (!carousel || !track) return;
-
-      const slide = track.querySelector(".carousel-slide");
-      if (!slide) return;
-
-      const itemsCount = track.querySelectorAll(".carousel-slide").length;
-      const maxStart = getCarouselMaxStart(itemsCount);
-      carousel.currentIndex = Math.min(carousel.currentIndex, maxStart);
-      carousel.dotPositions = getCarouselDotPositions(maxStart);
-
-      const itemWidth = slide.offsetWidth;
-      const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
-      const offset = -(carousel.currentIndex * (itemWidth + gap));
-      track.style.transform = `translate3d(${offset}px, 0, 0)`;
+      if (!carousel) return;
 
       const activeDotIndex = getActiveDotIndex(carousel.currentIndex, carousel.dotPositions);
       document.querySelectorAll(`[data-carousel="${carouselId}"][data-dot-index]`).forEach(dot => {
@@ -4319,6 +4332,45 @@
         dot.dataset.dotPosition = String(carousel.dotPositions[dotIndex] ?? 0);
         dot.classList.toggle("active", dotIndex === activeDotIndex);
       });
+    }
+
+    function updateCarouselPosition(carouselId, behavior = "smooth") {
+      const carousel = state.carousels[carouselId];
+      const track = document.getElementById(carouselId);
+      if (!carousel || !track) return;
+
+      const scroller = getCarouselScroller(track);
+      const itemsCount = track.querySelectorAll(".carousel-slide").length;
+      const maxStart = getCarouselMaxStart(itemsCount);
+      const step = getCarouselStep(track);
+
+      carousel.currentIndex = Math.max(0, Math.min(carousel.currentIndex, maxStart));
+      carousel.dotPositions = getCarouselDotPositions(maxStart);
+      track.style.transform = "none";
+
+      if (scroller && step) {
+        scroller.scrollTo({
+          left: carousel.currentIndex * step,
+          behavior
+        });
+      }
+
+      updateCarouselDots(carouselId);
+    }
+
+    function syncCarouselFromScroll(track) {
+      const carousel = state.carousels[track.id];
+      const scroller = getCarouselScroller(track);
+      if (!carousel || !scroller) return;
+
+      const itemsCount = track.querySelectorAll(".carousel-slide").length;
+      const maxStart = getCarouselMaxStart(itemsCount);
+      const step = getCarouselStep(track);
+      if (!step) return;
+
+      carousel.currentIndex = Math.max(0, Math.min(maxStart, Math.round(scroller.scrollLeft / step)));
+      carousel.dotPositions = getCarouselDotPositions(maxStart);
+      updateCarouselDots(track.id);
     }
 
     function moveCarousel(carouselId, direction) {
@@ -4332,111 +4384,6 @@
         ? (carousel.currentIndex <= 0 ? maxStart : carousel.currentIndex - 1)
         : (carousel.currentIndex >= maxStart ? 0 : carousel.currentIndex + 1);
       updateCarouselPosition(carouselId);
-    }
-
-    function setupCarouselTouch(track) {
-      let startX = 0;
-      let startY = 0;
-      let currentX = 0;
-      let baseOffset = 0;
-      let stepSize = 0;
-      let axis = "";
-      let isDragging = false;
-
-      function getCarouselStep() {
-        const slide = track.querySelector(".carousel-slide");
-        if (!slide) return 0;
-        const styles = getComputedStyle(track);
-        const gap = Number.parseFloat(styles.columnGap || styles.gap) || 0;
-        return slide.offsetWidth + gap;
-      }
-
-      function getMaxStart() {
-        return getCarouselMaxStart(track.querySelectorAll(".carousel-slide").length);
-      }
-
-      function getMinOffset() {
-        return -(getMaxStart() * stepSize);
-      }
-
-      function clampOffset(offset) {
-        const minOffset = getMinOffset();
-        if (offset > 0) return offset * 0.22;
-        if (offset < minOffset) return minOffset + (offset - minOffset) * 0.22;
-        return offset;
-      }
-
-      function applyOffset(offset) {
-        track.style.transform = `translate3d(${offset}px, 0, 0)`;
-      }
-
-      function startDrag(clientX, clientY) {
-        const carousel = state.carousels[track.id];
-        if (!carousel) return;
-
-        startX = clientX;
-        startY = clientY;
-        currentX = clientX;
-        stepSize = getCarouselStep();
-        baseOffset = -(carousel.currentIndex * stepSize);
-        axis = "";
-        isDragging = Boolean(stepSize);
-        track.style.transition = "none";
-      }
-
-      function moveDrag(clientX, clientY, event) {
-        if (!isDragging || !stepSize) return;
-
-        currentX = clientX;
-        const diffX = currentX - startX;
-        const diffY = clientY - startY;
-
-        if (!axis && (Math.abs(diffX) > 7 || Math.abs(diffY) > 7)) {
-          axis = Math.abs(diffX) > Math.abs(diffY) ? "x" : "y";
-        }
-
-        if (axis !== "x") return;
-        if (event && event.cancelable) event.preventDefault();
-
-        applyOffset(clampOffset(baseOffset + diffX));
-      }
-
-      function endDrag() {
-        if (!isDragging) return;
-
-        const carousel = state.carousels[track.id];
-        if (!carousel) return;
-
-        const diffX = currentX - startX;
-        const maxStart = getMaxStart();
-
-        track.style.transition = "";
-        isDragging = false;
-
-        if (axis !== "x" || Math.abs(diffX) < 22) {
-          updateCarouselPosition(track.id);
-          return;
-        }
-
-        const rawIndex = Math.round(Math.abs(baseOffset + diffX) / Math.max(stepSize, 1));
-        carousel.currentIndex = Math.max(0, Math.min(maxStart, rawIndex));
-        updateCarouselPosition(track.id);
-      }
-
-      track.addEventListener("touchstart", event => {
-        if (!event.touches.length) return;
-        const touch = event.touches[0];
-        startDrag(touch.clientX, touch.clientY);
-      }, { passive: true });
-
-      track.addEventListener("touchmove", event => {
-        if (!event.touches.length) return;
-        const touch = event.touches[0];
-        moveDrag(touch.clientX, touch.clientY, event);
-      }, { passive: false });
-
-      track.addEventListener("touchend", endDrag, { passive: true });
-      track.addEventListener("touchcancel", endDrag, { passive: true });
     }
 
     function setupCarouselListeners() {
@@ -4457,7 +4404,16 @@
         });
       });
 
-      document.querySelectorAll(".carousel-track").forEach(setupCarouselTouch);
+      document.querySelectorAll(".carousel-track").forEach(track => {
+        const scroller = getCarouselScroller(track);
+        if (!scroller) return;
+
+        scroller.addEventListener("scroll", () => {
+          window.requestAnimationFrame(() => syncCarouselFromScroll(track));
+        }, { passive: true });
+
+        updateCarouselPosition(track.id, "auto");
+      });
     }
 
     function saveCart() {
