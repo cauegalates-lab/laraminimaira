@@ -1072,40 +1072,19 @@
     @media (max-width: 768px) {
       .carousel-wrapper {
         padding: 4px 0 8px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scroll-snap-type: x mandatory;
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
-        touch-action: pan-x pan-y;
+        overflow: hidden;
+        touch-action: pan-y;
         overscroll-behavior-x: contain;
-        scrollbar-width: none;
-      }
-
-      .carousel-wrapper::-webkit-scrollbar {
-        display: none;
       }
 
       .carousel-track {
         gap: 8px;
-        width: max-content;
-        min-width: 100%;
-        transition: none !important;
-        transform: none !important;
-        will-change: auto;
-        touch-action: pan-x pan-y;
+        will-change: transform;
+        touch-action: pan-y;
       }
 
       .carousel-slide {
-        flex: 0 0 calc((100vw - 40px) / 3);
-        scroll-snap-align: start;
-        scroll-snap-stop: normal;
-      }
-
-      .carousel-navigation,
-      .carousel-controls,
-      .carousel-dots {
-        display: none !important;
+        flex: 0 0 calc((100% - 16px) / 3);
       }
 
       .carousel-header {
@@ -4286,10 +4265,6 @@
       updateProductCartBadges();
     }
 
-    function isMobileNativeCarousel() {
-      return window.matchMedia("(max-width: 768px)").matches;
-    }
-
     function updateCarouselPosition(carouselId) {
       const carousel = state.carousels[carouselId];
       const track = document.getElementById(carouselId);
@@ -4302,12 +4277,6 @@
       const maxStart = getCarouselMaxStart(itemsCount);
       carousel.currentIndex = Math.min(carousel.currentIndex, maxStart);
       carousel.dotPositions = getCarouselDotPositions(maxStart);
-
-      if (isMobileNativeCarousel()) {
-        track.style.transition = "";
-        track.style.transform = "none";
-        return;
-      }
 
       const itemWidth = slide.offsetWidth;
       const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
@@ -4327,19 +4296,6 @@
       const track = document.getElementById(carouselId);
       if (!carousel || !track) return;
 
-      if (isMobileNativeCarousel()) {
-        const wrapper = track.closest(".carousel-wrapper");
-        const slide = track.querySelector(".carousel-slide");
-        if (!wrapper || !slide) return;
-
-        const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap) || 0;
-        wrapper.scrollBy({
-          left: direction * (slide.offsetWidth + gap),
-          behavior: "smooth"
-        });
-        return;
-      }
-
       const itemsCount = track.querySelectorAll(".carousel-slide").length;
       const maxStart = getCarouselMaxStart(itemsCount);
       carousel.currentIndex = direction < 0
@@ -4349,8 +4305,6 @@
     }
 
     function setupCarouselTouch(track) {
-      if (isMobileNativeCarousel()) return;
-
       let startX = 0;
       let startY = 0;
       let currentX = 0;
@@ -4464,8 +4418,6 @@
 
       document.querySelectorAll("[data-carousel][data-dot-position]").forEach(dot => {
         dot.addEventListener("click", () => {
-          if (isMobileNativeCarousel()) return;
-
           const carouselId = dot.dataset.carousel;
           const carousel = state.carousels[carouselId];
           if (!carousel) return;
