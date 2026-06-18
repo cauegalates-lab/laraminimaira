@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel financeiro | Laraminimaria</title>
+  <link rel="icon" type="image/png" href="./imagens/favicon.png">
+  <link rel="stylesheet" href="./financeiro.css">
+</head>
+<body>
+  <main class="login-screen" id="loginScreen">
+    <section class="login-card">
+      <img src="./imagens/logo-header.png" alt="Laraminimaria" class="login-logo">
+      <span class="eyebrow">Área administrativa</span>
+      <h1>Painel financeiro</h1>
+      <p>Controle pedidos, lucro, reposição e estoque de forma simples.</p>
+      <form id="loginForm" class="login-form">
+        <label for="pinInput">Senha de acesso</label>
+        <input id="pinInput" type="password" inputmode="numeric" placeholder="Digite a senha" autocomplete="current-password">
+        <button type="submit">Entrar no painel</button>
+        <small>Senha padrão para teste: <strong>1234</strong>. Altere no arquivo <strong>financeiro.js</strong>.</small>
+      </form>
+    </section>
+  </main>
+
+  <main class="app" id="app" hidden>
+    <header class="admin-header">
+      <div class="admin-brand">
+        <img src="./imagens/logo-header.png" alt="Laraminimaria">
+        <div>
+          <strong>Painel financeiro</strong>
+          <span>Laraminimaria</span>
+        </div>
+      </div>
+      <nav class="admin-sections" aria-label="Navegação interna do painel">
+        <button type="button" class="admin-tab active" data-tab-target="pedidos">Pedidos</button>
+        <button type="button" class="admin-tab" data-tab-target="produtos">Produtos</button>
+        <button type="button" class="admin-tab" data-tab-target="ranking">Ranking</button>
+      </nav>
+      <nav class="admin-actions">
+        <a href="./index.html">Voltar ao site</a>
+        <button type="button" id="syncButton">Atualizar</button>
+        <button type="button" id="logoutButton" class="ghost">Sair</button>
+      </nav>
+    </header>
+
+    <section class="notice" id="modeNotice"></section>
+
+    <section class="hero-panel">
+      <div>
+        <span class="eyebrow">Resumo do mês</span>
+        <h1>Resumo financeiro</h1>
+        <p>Pedidos do site entram automaticamente. Ao confirmar o pagamento, o painel calcula lucro, reposição e baixa o estoque.</p>
+      </div>
+      <div class="hero-box">
+        <button type="button" class="money-toggle" id="toggleHeroTotal" aria-label="Esconder faturamento" aria-pressed="false">
+          <svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3l18 18"></path>
+            <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"></path>
+            <path d="M9.9 5.3A9.8 9.8 0 0 1 12 5c6 0 9.5 7 9.5 7a16.7 16.7 0 0 1-2.1 3"></path>
+            <path d="M6.5 6.9C3.9 8.7 2.5 12 2.5 12s3.5 7 9.5 7a9.8 9.8 0 0 0 4.1-.9"></path>
+          </svg>
+        </button>
+        <strong id="heroTotal" data-visible-value="R$ 0,00">R$ 0,00</strong>
+        <span>faturamento pago</span>
+      </div>
+    </section>
+
+    <section class="cards-grid" id="summaryCards"></section>
+
+    <section class="finance-tabs">
+      <div class="tab-panel active" data-tab-panel="pedidos">
+        <article class="panel orders-panel" id="pedidosArea">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Pedidos</span>
+              <h2>Entradas automáticas do site</h2>
+            </div>
+            <div class="panel-actions panel-actions-wide">
+              <input id="orderSearch" type="search" placeholder="Buscar código do pedido">
+              <button type="button" id="markPaidButton" class="success-action">Dar como pago</button>
+              <select id="statusFilter">
+                <option value="Todos">Todos</option>
+                <option value="Pendente">Pendentes</option>
+                <option value="Pago">Pagos</option>
+                <option value="Cancelado">Cancelados</option>
+              </select>
+              <button type="button" id="exportOrdersPdfButton">Exportar PDF</button>
+              <button type="button" id="demoOrderButton">Criar pedido teste</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pedido</th>
+                  <th>Data</th>
+                  <th>Itens</th>
+                  <th>Venda</th>
+                  <th>Reposição</th>
+                  <th>Lucro</th>
+                  <th>Status</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="produtos">
+        <section class="panel products-panel" id="produtosArea">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Produtos</span>
+              <h2>Custo, estoque e margem</h2>
+            </div>
+            <div class="panel-actions panel-actions-wide">
+              <input id="productSearch" type="search" placeholder="Buscar perfume">
+              <button type="button" id="exportProductsPdfButton">Exportar PDF</button>
+              <button type="button" id="exportButton">Exportar CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Venda</th>
+                  <th>Custo</th>
+                  <th>Lucro un.</th>
+                  <th>Estoque</th>
+                  <th>Status</th>
+                  <th>Salvar</th>
+                </tr>
+              </thead>
+              <tbody id="productsTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="ranking">
+      <section class="panel ranking-panel" id="rankingArea">
+      <div class="panel-head compact">
+        <div>
+          <span class="eyebrow">Mais vendidos</span>
+          <h2>Ranking</h2>
+        </div>
+      </div>
+      <div class="ranking-list" id="rankingList"></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="financeToast"></div>
+  <script src="./financeiro.js"></script>
+</body>
+</html>
